@@ -215,4 +215,4 @@ GuiClose:
     runing:= False
     Return
 
-#Include, C:\AutoHotkey\Lib\我的脚本\公共方法\TrayIcon.ahk
+#Include %A_ScriptDir%\TrayIcon.ahk
