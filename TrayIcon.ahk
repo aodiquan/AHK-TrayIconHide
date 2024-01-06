@@ -1,4 +1,23 @@
-﻿; ----------------------------------------------------------------------------------------------------------------------
+; -------
+; 常用例子
+; o:=TrayIcon_GetInfo("QQ.exe")
+; Loop,% o.MaxIndex()
+; {
+;  WinShow % "QQ ahk_class TXGuiFoundation ahk_pid " o[A_Index].pid
+;  WinActivate % "QQ ahk_class TXGuiFoundation ahk_pid " o[A_Index].pid
+; }
+; 单击某个Tray icon图标，无需鼠标即可单击微信托盘图标，激活当前消息窗口，调用示范：
+; TrayIconButtonByName("WeChat.exe", "L")
+; 双击
+; TrayIconButtonByName("Everything.exe", "L",1)
+; 右击某个Tray icon图标，再用↑或↓键来定位菜单项，发送{Enter}确认
+; TrayIconButtonByName("Everything.exe", "R")
+; send {down 2}
+; send {enter}
+; return
+; -------
+
+; ----------------------------------------------------------------------------------------------------------------------
 ; Name ..........: TrayIcon library
 ; Description ...: Provide some useful functions to deal with Tray icons.
 ; AHK Version ...: AHK_L 1.1.22.02 x32/64 Unicode
@@ -15,11 +34,10 @@
 ; ...............:                hidden icons.
 ; Upd.20190312 ..: Cyruz        - Added TrayIcon_Set, code merged and refactored.
 ; ----------------------------------------------------------------------------------------------------------------------
-
 ; ----------------------------------------------------------------------------------------------------------------------
 ; Function ......: TrayIcon_GetInfo
 ; Description ...: Get a series of useful information about tray icons.
-; Parameters ....: sExeName  - The exe for which we are searching the tray icon data. Leave it empty to receive data for 
+; Parameters ....: sExeName  - The exe for which we are searching the tray icon data. Leave it empty to receive data for
 ; ...............:             all tray icons.
 ; Return ........: oTrayInfo - An array of objects containing tray icons data. Any entry is structured like this:
 ; ...............:             oTrayInfo[A_Index].idx     - 0 based tray icon index.
@@ -48,7 +66,7 @@ TrayIcon_GetInfo(sExeName := "")
     {
         idxTB := TrayIcon_GetTrayBar(sTray)
         WinGet, pidTaskbar, PID, ahk_class %sTray%
-        
+
         hProc := DllCall("OpenProcess",    UInt,0x38, Int,0, UInt,pidTaskbar)
         pRB   := DllCall("VirtualAllocEx", Ptr,hProc, Ptr,0, UPtr,20, UInt,0x1000, UInt,0x04)
 
@@ -97,6 +115,7 @@ TrayIcon_GetInfo(sExeName := "")
                                , "process" : sProcess
                                , "tooltip" : StrGet(&tip, "UTF-16")
                                , "tray"    : sTray })
+                tip :=
             }
         }
         DllCall("VirtualFreeEx", Ptr,hProc, Ptr,pRB, UPtr,0, UInt,0x8000)
@@ -193,7 +212,7 @@ TrayIcon_Set(hWnd, uId, hIcon, hIconSmall:=0, hIconBig:=0)
     d := A_DetectHiddenWindows
     DetectHiddenWindows, On
     ; WM_SETICON = 0x0080
-    If ( hIconSmall ) 
+    If ( hIconSmall )
         SendMessage, 0x0080, 0, hIconSmall,, ahk_id %hWnd%
     If ( hIconBig )
         SendMessage, 0x0080, 1, hIconBig,, ahk_id %hWnd%
@@ -205,7 +224,7 @@ TrayIcon_Set(hWnd, uId, hIcon, hIconSmall:=0, hIconBig:=0)
     NumPut( uId,   NID, (A_PtrSize == 4) ? 8   : 16 )
     NumPut( 2,     NID, (A_PtrSize == 4) ? 12  : 20 )
     NumPut( hIcon, NID, (A_PtrSize == 4) ? 20  : 32 )
-    
+
     ; NIM_MODIFY := 0x1
     Return DllCall("Shell32.dll\Shell_NotifyIcon", UInt,0x1, Ptr,&NID)
 }
@@ -302,6 +321,31 @@ TrayIcon_Button(msgid, uid, hwnd, sButton:="L", bDouble:=False, nIdx:=1) {
     Else {
         PostMessage, msgid, uid, %sButton%DOWN,, % "ahk_id " hwnd
         PostMessage, msgid, uid, %sButton%UP,, % "ahk_id " hwnd
+    }
+    DetectHiddenWindows, %d%
+    Return
+}
+
+TrayIconButtonByName(sExeName, sButton:="L", bDouble:=False, nIdx:=1) {
+    d := A_DetectHiddenWindows
+    DetectHiddenWindows, On
+    WM_MOUSEMOVE      = 0x0200
+    WM_LBUTTONDOWN    = 0x0201
+    WM_LBUTTONUP      = 0x0202
+    WM_LBUTTONDBLCLK  = 0x0203
+    WM_RBUTTONDOWN    = 0x0204
+    WM_RBUTTONUP      = 0x0205
+    WM_RBUTTONDBLCLK  = 0x0206
+    WM_MBUTTONDOWN    = 0x0207
+    WM_MBUTTONUP      = 0x0208
+    WM_MBUTTONDBLCLK  = 0x0209
+    sButton := "WM_" sButton "BUTTON"
+    oIcons  := TrayIcon_GetInfo(sExeName)
+    If ( bDouble )
+        PostMessage, oIcons[nIdx].msgid, oIcons[nIdx].uid, %sButton%DBLCLK,, % "ahk_id " oIcons[nIdx].hwnd
+    Else {
+        PostMessage, oIcons[nIdx].msgid, oIcons[nIdx].uid, %sButton%DOWN,, % "ahk_id " oIcons[nIdx].hwnd
+        PostMessage, oIcons[nIdx].msgid, oIcons[nIdx].uid, %sButton%UP,, % "ahk_id " oIcons[nIdx].hwnd
     }
     DetectHiddenWindows, %d%
     Return
